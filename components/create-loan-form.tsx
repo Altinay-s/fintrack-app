@@ -12,14 +12,50 @@ import {
     SelectValue,
 } from "@/components/ui/select"
 import { TURKISH_BANKS } from '@/lib/constants'
-import { useState } from 'react'
+import { useRef, useState, DragEvent, ChangeEvent } from 'react'
 import { Loader2 } from 'lucide-react'
 
 export function CreateLoanForm() {
     const [loading, setLoading] = useState(false)
+    const [dragActive, setDragActive] = useState(false)
+    const [file, setFile] = useState<File | null>(null)
+    const inputRef = useRef<HTMLInputElement>(null)
+
+    const handleDrag = (e: DragEvent<HTMLDivElement>) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (e.type === "dragenter" || e.type === "dragover") {
+            setDragActive(true)
+        } else if (e.type === "dragleave") {
+            setDragActive(false)
+        }
+    }
+
+    const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setDragActive(false)
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            setFile(e.dataTransfer.files[0])
+        }
+    }
+
+    const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+        e.preventDefault()
+        if (e.target.files && e.target.files[0]) {
+            setFile(e.target.files[0])
+        }
+    }
+
+    const handleDivClick = () => {
+        inputRef.current?.click()
+    }
 
     async function handleSubmit(formData: FormData) {
         setLoading(true)
+        if (file) {
+            formData.append('pdfFile', file)
+        }
         const res = await createLoan(formData)
         setLoading(false)
         if (res?.error) {
@@ -35,34 +71,32 @@ export function CreateLoanForm() {
         <form action={handleSubmit} className="space-y-4 border p-4 rounded-lg bg-card text-card-foreground shadow-sm">
             <h3 className="text-lg font-bold">Yeni Kredi Ekle</h3>
 
-            {/* File Upload Zone (Visual Only) */}
+            {/* File Upload Zone */}
             <div
-                className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => alert("Bu özellik yakında aktif olacak! (PDF AI Parsing)")}
+                className={`border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer transition-colors ${dragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:bg-muted/50'
+                    }`}
+                onDragEnter={handleDrag}
+                onDragLeave={handleDrag}
+                onDragOver={handleDrag}
+                onDrop={handleDrop}
+                onClick={handleDivClick}
             >
+                <input
+                    ref={inputRef}
+                    type="file"
+                    accept=".pdf"
+                    className="hidden"
+                    onChange={handleChange}
+                    name="pdfFile"
+                />
                 <div className="p-3 bg-primary/10 rounded-full mb-3">
-                    <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        width="24"
-                        height="24"
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                        strokeWidth="2"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        className="text-primary h-6 w-6"
-                    >
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                        <polyline points="17 8 12 3 7 8" />
-                        <line x1="12" x2="12" y1="3" y2="15" />
-                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary h-6 w-6"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="17 8 12 3 7 8" /><line x1="12" x2="12" y1="3" y2="15" /></svg>
                 </div>
                 <p className="text-sm font-medium">
-                    Kredi ödeme planınızı (PDF) buraya sürükleyin
+                    {file ? file.name : "Kredi ödeme planınızı (PDF) buraya sürükleyin"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                    Yapay Zeka otomatik doldursun (Yakında)
+                    {file ? "Dosya seçildi" : "veya dosya seçmek için tıklayın"}
                 </p>
             </div>
 

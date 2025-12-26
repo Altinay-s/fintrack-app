@@ -8,36 +8,225 @@ datasource db {
   directUrl = env("DIRECT_URL")
 }
 
-model User {
-  id          String   @id @default(uuid())
-  email       String   @unique
+// Enums
+enum KullaniciRolu {
+  USER
+  ADMIN
+}
+
+enum KrediDurumu {
+  ACTIVE
+  PAID
+  CLOSED
+  DEFAULTED
+}
+
+enum TaksitDurumu {
+  PENDING
+  PARTIALLY_PAID
+  PAID
+  OVERDUE
+}
+
+enum OdemeYontemi {
+  CASH
+  BANK_TRANSFER
+  CREDIT_CARD
+  OTHER
+}
+
+enum HatirlaticiTipi {
+  EMAIL
+  SMS
+  PUSH
+}
+
+enum HatirlaticiDurumu {
+  PENDING
+  SENT
+  DISMISSED
+}
+
+enum HesapTipi {
+  CASH
+  BANK_ACCOUNT
+  CREDIT_CARD
+  INVESTMENT
+  OTHER
+}
+
+enum IslemTipi {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+enum ButceDonemi {
+  MONTHLY
+  YEARLY
+  ONE_TIME
+}
+
+// Models
+
+model Kullanici {
+  id          String        @id @default(uuid())
+  email       String        @unique
+  password    String?
+  fullName    String?
   companyName String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  loans       Loan[]
+  role        KullaniciRolu @default(USER)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  krediler      Kredi[]
+  hesaplar      Hesap[]
+  islemler      Islem[]
+  butceler      Butce[]
+  hatirlaticilar Hatirlatici[]
+  kategoriler   Kategori[]
 }
 
-model Loan {
-  id            String        @id @default(uuid())
-  userId        String
-  bankName      String
-  totalAmount   Decimal
-  interestRate  Decimal
-  startDate     DateTime
-  status        String        @default("ACTIVE") // ACTIVE, PAID, DEFAULTED
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  user          User          @relation(fields: [userId], references: [id])
-  installments  Installment[]
-}
-
-model Installment {
+model Banka {
   id        String   @id @default(uuid())
-  loanId    String
-  amount    Decimal
-  dueDate   DateTime
-  isPaid    Boolean  @default(false)
+  name      String   @unique
+  logo      String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  loan      Loan     @relation(fields: [loanId], references: [id])
+
+  krediler Kredi[]
+}
+
+model Kredi {
+  id                  String      @id @default(uuid())
+  userId              String
+  bankId              String?
+  bankName            String
+  totalAmount         Decimal     @db.Decimal(15, 2)
+  monthlyInterestRate Decimal     @db.Decimal(5, 4)
+  term                Int
+  startDate           DateTime    @db.Date
+  status              KrediDurumu @default(ACTIVE)
+  remainingPrincipal  Decimal     @db.Decimal(15, 2)
+  description         String?
+  pdfPath             String?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  kullanici      Kullanici     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  banka          Banka?        @relation(fields: [bankId], references: [id])
+  taksitler      Taksit[]
+  hatirlaticilar Hatirlatici[]
+}
+
+model Taksit {
+  id                 String       @id @default(uuid())
+  loanId             String
+  installmentNumber  Int
+  amount             Decimal      @db.Decimal(15, 2)
+  principalAmount    Decimal      @db.Decimal(15, 2)
+  interestAmount     Decimal      @db.Decimal(15, 2)
+  remainingPrincipal Decimal      @db.Decimal(15, 2)
+  dueDate            DateTime     @db.Date
+  paidDate           DateTime?    @db.Date
+  status             TaksitDurumu @default(PENDING)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  kredi          Kredi         @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  odemeler       Odeme[]
+  hatirlaticilar Hatirlatici[]
+}
+
+model Odeme {
+  id            String       @id @default(uuid())
+  installmentId String
+  amount        Decimal      @db.Decimal(15, 2)
+  date          DateTime     @default(now())
+  method        OdemeYontemi @default(BANK_TRANSFER)
+  note          String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  taksit Taksit @relation(fields: [installmentId], references: [id])
+}
+
+model Hatirlatici {
+  id            String            @id @default(uuid())
+  userId        String
+  loanId        String?
+  installmentId String?
+  remindAt      DateTime
+  type          HatirlaticiTipi   @default(EMAIL)
+  status        HatirlaticiDurumu @default(PENDING)
+  message       String?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  kullanici Kullanici @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kredi     Kredi?    @relation(fields: [loanId], references: [id])
+  taksit    Taksit?   @relation(fields: [installmentId], references: [id])
+}
+
+model Hesap {
+  id        String    @id @default(uuid())
+  userId    String
+  name      String
+  type      HesapTipi @default(CASH)
+  balance   Decimal   @db.Decimal(15, 2) @default(0)
+  currency  String    @default("TRY")
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  kullanici Kullanici @relation(fields: [userId], references: [id], onDelete: Cascade)
+  islemler  Islem[]
+}
+
+model Kategori {
+  id        String    @id @default(uuid())
+  userId    String?
+  name      String
+  type      IslemTipi
+  icon      String?
+  color     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  kullanici Kullanici? @relation(fields: [userId], references: [id])
+  islemler  Islem[]
+  butceler  Butce[]
+
+  @@unique([userId, name, type])
+}
+
+model Islem {
+  id          String    @id @default(uuid())
+  userId      String
+  accountId   String
+  categoryId  String?
+  amount      Decimal   @db.Decimal(15, 2)
+  type        IslemTipi
+  date        DateTime  @db.Date
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  kullanici Kullanici @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hesap     Hesap     @relation(fields: [accountId], references: [id])
+  kategori  Kategori? @relation(fields: [categoryId], references: [id])
+}
+
+model Butce {
+  id         String      @id @default(uuid())
+  userId     String
+  categoryId String
+  amount     Decimal     @db.Decimal(15, 2)
+  period     ButceDonemi @default(MONTHLY)
+  startDate  DateTime    @db.Date
+  endDate    DateTime?   @db.Date
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+
+  kullanici Kullanici @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kategori  Kategori  @relation(fields: [categoryId], references: [id])
 }

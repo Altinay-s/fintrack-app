@@ -10,27 +10,27 @@ import { ModeToggle } from "@/components/mode-toggle"
 
 const sidebarItems = [
     {
-        title: "Dashboard",
+        title: "Panel",
         href: "/",
         icon: Home
     },
     {
-        title: "Loans",
+        title: "Krediler",
         href: "/loans",
         icon: Wallet
     },
     {
-        title: "Payments",
+        title: "Ödemeler",
         href: "/payments",
         icon: CreditCard
     },
     {
-        title: "Reports",
+        title: "Raporlar",
         href: "/reports",
         icon: PieChart
     },
     {
-        title: "Settings",
+        title: "Ayarlar",
         href: "/settings",
         icon: Settings
     }
@@ -69,7 +69,7 @@ export function AppSidebar() {
                     <form action={signOut} className="flex-1 mr-2">
                         <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-red-500">
                             <LogOut className="h-4 w-4" />
-                            Sign Out
+                            Çıkış Yap
                         </Button>
                     </form>
                     <ModeToggle />

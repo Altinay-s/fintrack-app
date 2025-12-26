@@ -20,11 +20,11 @@ export default async function LoansPage() {
         redirect('/login')
     }
 
-    const loans = await prisma.loan.findMany({
+    const loans = await prisma.kredi.findMany({
         where: { userId: user.id },
         orderBy: { createdAt: 'desc' },
         include: {
-            installments: true
+            taksitler: true
         }
     })
 
@@ -53,9 +53,9 @@ export default async function LoansPage() {
                                 <TableCell className="font-medium">{loan.bankName}</TableCell>
                                 <TableCell>{formatDate(loan.startDate)}</TableCell>
                                 <TableCell>{formatCurrency(Number(loan.totalAmount))}</TableCell>
-                                <TableCell>%{Number(loan.interestRate)}</TableCell>
+                                <TableCell>%{Number(loan.monthlyInterestRate)}</TableCell>
                                 <TableCell>
-                                    {loan.installments.filter(i => i.isPaid).length} / {loan.installments.length} Ödendi
+                                    {loan.taksitler.filter(i => i.status === 'PAID').length} / {loan.taksitler.length} Ödendi
                                 </TableCell>
                                 <TableCell>
                                     <Badge variant={loan.status === 'ACTIVE' ? 'default' : 'secondary'}>

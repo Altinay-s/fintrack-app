@@ -31,7 +31,7 @@ export default function LoginPage() {
                             <div className="flex items-center">
                                 <Label htmlFor="password">Şifre</Label>
                                 {/* <Link href="#" className="ml-auto inline-block text-sm underline">
-                  Şifrenizi mi unuttuz?
+                  Şifrenizi mi unuttunuz?
                 </Link> */}
                             </div>
                             <Input id="password" name="password" type="password" required />

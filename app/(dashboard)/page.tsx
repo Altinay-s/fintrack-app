@@ -17,18 +17,27 @@ export default async function Dashboard() {
     }
 
     // Fetch Loans with Installments
-    const loans = await prisma.loan.findMany({
+    const loansData = await prisma.kredi.findMany({
         where: { userId: user.id },
-        include: { installments: true },
+        include: { taksitler: true },
         orderBy: { createdAt: 'desc' },
     })
+
+    // Map to match AIAdvisor interface if needed, or just let 'as any' handle it if names align enough.
+    // AIAdvisor expects 'interestRate', DB has 'monthlyInterestRate'.
+    // Also mapping 'taksitler' to 'installments' for Frontend compatibility
+    const loans = loansData.map(l => ({
+        ...l,
+        interestRate: l.monthlyInterestRate,
+        installments: l.taksitler
+    }))
 
     // 1. Calculate Total Debt (Total Loan Volume)
     const totalDebt = loans.reduce((sum, loan) => sum + Number(loan.totalAmount), 0)
 
     // 2. Calculate Remaining Installments count
     const remainingInstallments = loans.reduce((count, loan) => {
-        const unpaid = loan.installments.filter((i) => !i.isPaid).length
+        const unpaid = loan.installments.filter((i) => i.status !== 'PAID').length
         return count + unpaid
     }, 0)
 
@@ -60,7 +69,7 @@ export default async function Dashboard() {
     )
 
     const upcomingPayments = allInstallments
-        .filter((i) => !i.isPaid)
+        .filter((i) => i.status !== 'PAID')
         .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
         .slice(0, 5)
 
@@ -75,7 +84,7 @@ export default async function Dashboard() {
 
             {/* AI Asistanı */}
             <div className="mb-6">
-                <AIAdvisor loans={loans} />
+                <AIAdvisor loans={loans as any} />
             </div>
 
             {/* Summary Cards */}

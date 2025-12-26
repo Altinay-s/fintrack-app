@@ -53,11 +53,10 @@ export async function signup(formData: FormData) {
         // If email confirmation is required, this might be better in a Trigger or Webhook,
         // but for this MVP, we'll optimistically create it or let the user complete it later?
         // Actually, let's just create it. Our Prisma schema allows unverified users.
-        const { PrismaClient } = await import('@prisma/client')
-        const prisma = new PrismaClient()
+        const { default: prisma } = await import('@/lib/prisma')
 
         try {
-            await prisma.user.create({
+            await prisma.kullanici.create({
                 data: {
                     id: data.user.id, // Important: Sync IDs
                     email: email,
@@ -67,8 +66,6 @@ export async function signup(formData: FormData) {
         } catch (e) {
             console.error("Failed to create user record:", e)
             // Continue anyway, maybe handle duplicates or trigger logic
-        } finally {
-            await prisma.$disconnect()
         }
     }
 

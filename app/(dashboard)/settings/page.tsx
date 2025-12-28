@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'
 import { NotificationTest } from './notification-test'
 import { ProfileForm } from './profile-form'
+import { ManualReminderTrigger } from '@/components/manual-reminder-trigger'
 
 export default async function SettingsPage() {
     const supabase = await createClient()
@@ -85,6 +86,7 @@ export default async function SettingsPage() {
             <div className="grid gap-6">
                 <ProfileForm initialData={userData} />
                 <NotificationTest userEmail={userData.email} />
+                <ManualReminderTrigger />
             </div>
         </div>
     )

@@ -41,11 +41,41 @@ export async function GET(req: Request) {
             const user = installment.kredi.kullanici;
             if (!user.email) continue;
 
+            // Check if we already sent a reminder for this installment today
+            const alreadySent = await prisma.hatirlatici.findFirst({
+                where: {
+                    installmentId: installment.id,
+                    type: 'EMAIL',
+                    status: 'SENT',
+                    createdAt: {
+                        gte: startOfDay(new Date()), // Sent today
+                    }
+                }
+            });
+
+            if (alreadySent) {
+                console.log(`Reminder already sent for installment ${installment.id} today.`);
+                continue;
+            }
+
             const res = await sendPaymentReminder(user.email, {
                 userName: user.fullName || "Değerli Müşterimiz",
                 bankName: installment.kredi.bankName,
                 amount: `${installment.amount} ₺`,
                 dueDate: installment.dueDate.toLocaleDateString("tr-TR"),
+            });
+
+            // Log the reminder in DB
+            await prisma.hatirlatici.create({
+                data: {
+                    userId: user.id,
+                    loanId: installment.loanId,
+                    installmentId: installment.id,
+                    remindAt: new Date(),
+                    type: 'EMAIL',
+                    status: res.error ? 'PENDING' : 'SENT', // If failed, maybe retry later? For now mark PENDING or FAILED
+                    message: res.error || "Otomatik hatırlatma gönderildi"
+                }
             });
 
             results.push({

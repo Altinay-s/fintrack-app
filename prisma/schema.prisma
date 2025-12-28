@@ -148,7 +148,7 @@ model Odeme {
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
 
-  taksit Taksit @relation(fields: [installmentId], references: [id])
+  taksit Taksit @relation(fields: [installmentId], references: [id], onDelete: Cascade)
 }
 
 model Hatirlatici {

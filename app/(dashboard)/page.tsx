@@ -1,4 +1,4 @@
-import { CreateLoanForm } from '@/components/create-loan-form'
+import CreateLoanForm from '@/components/create-loan-form'
 import prisma from '@/lib/prisma'
 import { createClient } from '@/utils/supabase/server'
 import { redirect } from 'next/navigation'

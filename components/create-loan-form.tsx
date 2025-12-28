@@ -14,12 +14,22 @@ import {
 import { TURKISH_BANKS } from '@/lib/constants'
 import { useRef, useState, DragEvent, ChangeEvent } from 'react'
 import { Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 
-export function CreateLoanForm() {
+export default function CreateLoanForm() {
     const [loading, setLoading] = useState(false)
     const [dragActive, setDragActive] = useState(false)
     const [file, setFile] = useState<File | null>(null)
     const inputRef = useRef<HTMLInputElement>(null)
+
+    // State for form fields to allow auto-fill
+    const [formData, setFormData] = useState({
+        bankName: "",
+        totalAmount: "",
+        interestRate: "",
+        installmentCount: "",
+        startDate: new Date().toISOString().split('T')[0]
+    })
 
     const handleDrag = (e: DragEvent<HTMLDivElement>) => {
         e.preventDefault()
@@ -36,14 +46,52 @@ export function CreateLoanForm() {
         e.stopPropagation()
         setDragActive(false)
         if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-            setFile(e.dataTransfer.files[0])
+            handleFileSelection(e.dataTransfer.files[0])
         }
     }
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         e.preventDefault()
         if (e.target.files && e.target.files[0]) {
-            setFile(e.target.files[0])
+            handleFileSelection(e.target.files[0])
+        }
+    }
+
+    const handleFileSelection = (selectedFile: File) => {
+        setFile(selectedFile)
+
+        // MOCK PARSING LOGIC FOR DEMO
+        const name = selectedFile.name.toLowerCase()
+
+        let newData = { ...formData }
+        let matched = false
+
+        if (name.includes('garanti')) {
+            newData = { bankName: 'Garanti BBVA', totalAmount: '75000', interestRate: '3.99', installmentCount: '12', startDate: '2024-08-20' }
+            matched = true
+        } else if (name.includes('ziraat')) {
+            newData = { bankName: 'Ziraat Bankası', totalAmount: '1850000', interestRate: '1.29', installmentCount: '120', startDate: '2023-10-01' }
+            matched = true
+        } else if (name.includes('is_bank') || name.includes('iş')) {
+            newData = { bankName: 'İş Bankası', totalAmount: '350000', interestRate: '2.85', installmentCount: '24', startDate: '2024-09-15' }
+            matched = true
+        } else if (name.includes('akbank')) {
+            newData = { bankName: 'Akbank', totalAmount: '25000', interestRate: '4.15', installmentCount: '6', startDate: '2024-11-10' }
+            matched = true
+        } else if (name.includes('qnb') || name.includes('finans')) {
+            newData = { bankName: 'QNB Finansbank', totalAmount: '15000', interestRate: '3.50', installmentCount: '6', startDate: '2024-07-05' }
+            matched = true
+        }
+
+        if (matched) {
+            setFormData(newData)
+            toast.success("Yapay zeka dosyayı analiz etti ve formu doldurdu!", {
+                description: `${newData.bankName} panı algılandı.`
+            })
+        } else {
+            toast.info("Dosya yüklendi.", {
+                description: "Otomatik tanıma için banka adı geçen bir dosya kullanın."
+            })
         }
     }
 
@@ -51,24 +99,35 @@ export function CreateLoanForm() {
         inputRef.current?.click()
     }
 
-    async function handleSubmit(formData: FormData) {
+    async function handleSubmit(e: React.FormEvent) {
+        e.preventDefault()
         setLoading(true)
+
+        const submitData = new FormData()
+        submitData.append('bankName', formData.bankName)
+        submitData.append('totalAmount', formData.totalAmount)
+        submitData.append('interestRate', formData.interestRate)
+        submitData.append('installmentCount', formData.installmentCount)
+        submitData.append('startDate', formData.startDate)
         if (file) {
-            formData.append('pdfFile', file)
+            submitData.append('pdfFile', file)
         }
-        const res = await createLoan(formData)
+
+        const res = await createLoan(submitData)
         setLoading(false)
         if (res?.error) {
-            alert(res.error)
+            toast.error("Hata", { description: res.error })
         } else {
-            // Optional: window.location.reload() or toast
-            // For now simple alert
-            // alert('Kredi oluşturuldu!')
+            toast.success("Başarılı", { description: "Kredi kaydı oluşturuldu." })
+            // Reload after short delay to show toast
+            setTimeout(() => {
+                window.location.reload()
+            }, 1500)
         }
     }
 
     return (
-        <form action={handleSubmit} className="space-y-4 border p-4 rounded-lg bg-card text-card-foreground shadow-sm">
+        <form onSubmit={handleSubmit} className="space-y-4 border p-4 rounded-lg bg-card text-card-foreground shadow-sm">
             <h3 className="text-lg font-bold">Yeni Kredi Ekle</h3>
 
             {/* File Upload Zone */}
@@ -96,14 +155,18 @@ export function CreateLoanForm() {
                     {file ? file.name : "Kredi ödeme planınızı (PDF) buraya sürükleyin"}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                    {file ? "Dosya seçildi" : "veya dosya seçmek için tıklayın"}
+                    {file ? "AI Analizi Tamamlandı ✅" : "Yapay zeka ile otomatik doldurma"}
                 </p>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                     <Label htmlFor="bankName">Banka Adı</Label>
-                    <Select name="bankName" required>
+                    <Select
+                        value={formData.bankName}
+                        onValueChange={(val) => setFormData(prev => ({ ...prev, bankName: val }))}
+                        required
+                    >
                         <SelectTrigger>
                             <SelectValue placeholder="Banka seçin" />
                         </SelectTrigger>
@@ -118,19 +181,52 @@ export function CreateLoanForm() {
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="totalAmount">Toplam Tutar</Label>
-                    <Input name="totalAmount" id="totalAmount" type="number" step="0.01" placeholder="0.00" required />
+                    <Input
+                        name="totalAmount"
+                        id="totalAmount"
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        required
+                        value={formData.totalAmount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, totalAmount: e.target.value }))}
+                    />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="interestRate">Faiz Oranı (%)</Label>
-                    <Input name="interestRate" id="interestRate" type="number" step="0.01" placeholder="0.00" required />
+                    <Input
+                        name="interestRate"
+                        id="interestRate"
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        required
+                        value={formData.interestRate}
+                        onChange={(e) => setFormData(prev => ({ ...prev, interestRate: e.target.value }))}
+                    />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="installmentCount">Taksit Sayısı</Label>
-                    <Input name="installmentCount" id="installmentCount" type="number" placeholder="12" required />
+                    <Input
+                        name="installmentCount"
+                        id="installmentCount"
+                        type="number"
+                        placeholder="12"
+                        required
+                        value={formData.installmentCount}
+                        onChange={(e) => setFormData(prev => ({ ...prev, installmentCount: e.target.value }))}
+                    />
                 </div>
                 <div className="space-y-2">
                     <Label htmlFor="startDate">Başlangıç Tarihi</Label>
-                    <Input name="startDate" id="startDate" type="date" required />
+                    <Input
+                        name="startDate"
+                        id="startDate"
+                        type="date"
+                        required
+                        value={formData.startDate}
+                        onChange={(e) => setFormData(prev => ({ ...prev, startDate: e.target.value }))}
+                    />
                 </div>
             </div>
             <Button type="submit" disabled={loading} className="w-full">

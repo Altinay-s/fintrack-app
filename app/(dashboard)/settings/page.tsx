@@ -22,6 +22,7 @@ export default async function SettingsPage() {
         }
     })
 
+    let errorMsg = ''
     // Self-healing: Ensure Prisma record exists and matches Supabase Auth ID
     if (!userData && user.email) {
         try {
@@ -53,8 +54,9 @@ export default async function SettingsPage() {
                     companyName: true
                 }
             })
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error syncing user record:", error)
+            errorMsg = error.message || String(error)
             // Fallback: If create failed (race condition?), try fetching one last time
             userData = await prisma.kullanici.findUnique({
                 where: { id: user.id },
@@ -64,7 +66,13 @@ export default async function SettingsPage() {
     }
 
     if (!userData) {
-        return <div>Kullanıcı bulunamadı. Lütfen çıkış yapıp tekrar deneyin.</div>
+        return (
+            <div className="p-4 bg-destructive/10 text-destructive rounded-md space-y-2">
+                <p className="font-bold">Kullanıcı hesabı senkronize edilemedi.</p>
+                <p className="text-sm font-mono">{errorMsg || 'Lütfen sayfayı yenileyip tekrar deneyin. Sorun devam ederse destek ile iletişime geçin.'}</p>
+                <p className="text-xs text-muted-foreground">ID: {user.id} | Email: {user.email}</p>
+            </div>
+        )
     }
 
     return (

@@ -56,15 +56,22 @@ async function main() {
     console.log(`Seeding database for ${targetEmail}...`)
 
     // 1. Upsert Kullanici
-    const kullanici = await prisma.kullanici.upsert({
-        where: { email: targetEmail },
-        update: {},
-        create: {
-            email: targetEmail,
-            companyName: 'Altınay Teknoloji Ltd. Şti.',
-            fullName: 'Süleyman Altınay'
-        },
-    })
+    // 1. Upsert Kullanici
+    // Try to find existing user first to avoid disrupting Auth-linked users
+    let kullanici = await prisma.kullanici.findUnique({ where: { email: targetEmail } })
+
+    if (!kullanici) {
+        console.log('User not found, creating new seed user...')
+        kullanici = await prisma.kullanici.create({
+            data: {
+                email: targetEmail,
+                companyName: 'Altınay Teknoloji Ltd. Şti.',
+                fullName: 'Süleyman Altınay'
+            }
+        })
+    } else {
+        console.log('Found existing user, seeding data for them...')
+    }
     console.log(`User ID: ${kullanici.id}`)
 
     // 2. Clear existing data
@@ -115,6 +122,12 @@ async function main() {
 
         // Recently finished
         { bank: 'QNB Finansbank', amount: 100000, rate: 3.90, months: 6, startOffsetMonths: -7 },
+
+        // [NEW] Operating Capital - Revolving-style
+        { bank: 'Denizbank', amount: 400000, rate: 2.85, months: 18, startOffsetMonths: -5 },
+
+        // [NEW] Office Renovation
+        { bank: 'Yapı Kredi', amount: 750000, rate: 2.35, months: 36, startOffsetMonths: -1 },
     ]
 
     for (const scenario of loanScenarios) {

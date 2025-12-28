@@ -20,12 +20,12 @@ import { TaksitDurumu } from '@prisma/client'
 type InstallmentWithLoan = {
     id: string
     dueDate: Date
-    paidDate: Date | null // Added paidDate
-    amount: any // Prisma Decimal compatibility
+    paidDate: Date | null
+    amount: number
     status: TaksitDurumu
     kredi: {
         bankName: string
-        totalAmount: unknown
+        totalAmount: number
     }
 }
 

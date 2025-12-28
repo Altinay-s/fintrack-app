@@ -15,7 +15,7 @@ export default async function PaymentsPage() {
     }
 
     // Fetch installments that are not fully paid (Upcoming)
-    const upcomingInstallments = await prisma.taksit.findMany({
+    const rawUpcoming = await prisma.taksit.findMany({
         where: {
             kredi: { userId: user.id },
             status: { in: [TaksitDurumu.PENDING, TaksitDurumu.PARTIALLY_PAID, TaksitDurumu.OVERDUE] }
@@ -31,8 +31,17 @@ export default async function PaymentsPage() {
         orderBy: { dueDate: 'asc' }
     })
 
+    const upcomingInstallments = rawUpcoming.map(i => ({
+        ...i,
+        amount: Number(i.amount),
+        kredi: {
+            ...i.kredi,
+            totalAmount: Number(i.kredi.totalAmount)
+        }
+    }))
+
     // Fetch installments that are fully paid
-    const paidInstallments = await prisma.taksit.findMany({
+    const rawPaid = await prisma.taksit.findMany({
         where: {
             kredi: { userId: user.id },
             status: TaksitDurumu.PAID
@@ -48,6 +57,15 @@ export default async function PaymentsPage() {
         orderBy: { dueDate: 'desc' }, // Show most recently paid first (or by due date)
         take: 50 // Limit history to last 50 payments to avoid overload
     })
+
+    const paidInstallments = rawPaid.map(i => ({
+        ...i,
+        amount: Number(i.amount),
+        kredi: {
+            ...i.kredi,
+            totalAmount: Number(i.kredi.totalAmount)
+        }
+    }))
 
     return (
         <div className="space-y-6">

@@ -11,6 +11,7 @@ export const TURKISH_BANKS = [
     "TEB",
     "Şekerbank",
     "Türkiye Finans",
+    "Fibabanka",
 ];
 
 export const BANK_URLS: Record<string, string> = {
@@ -26,4 +27,5 @@ export const BANK_URLS: Record<string, string> = {
     "TEB": "https://www.teb.com.tr",
     "Şekerbank": "https://www.sekerbank.com.tr",
     "Türkiye Finans": "https://www.turkiyefinans.com.tr",
+    "Fibabanka": "https://www.fibabanka.com.tr",
 };

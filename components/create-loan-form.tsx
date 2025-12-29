@@ -81,6 +81,9 @@ export default function CreateLoanForm() {
         } else if (name.includes('qnb') || name.includes('finans')) {
             newData = { bankName: 'QNB Finansbank', totalAmount: '15000', interestRate: '3.50', installmentCount: '6', startDate: '2024-07-05' }
             matched = true
+        } else if (name.includes('fiba')) {
+            newData = { bankName: 'Fibabanka', totalAmount: '50000', interestRate: '3.19', installmentCount: '12', startDate: '2024-09-01' }
+            matched = true
         }
 
         if (matched) {

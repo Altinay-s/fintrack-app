@@ -60,7 +60,7 @@ export default function CreateLoanForm() {
     const handleFileSelection = (selectedFile: File) => {
         setFile(selectedFile)
 
-        // MOCK PARSING LOGIC FOR DEMO
+        // MOCK PARSING LOGIC FOR DEMO - FORCE REDEPLOY
         const name = selectedFile.name.toLowerCase()
 
         let newData = { ...formData }

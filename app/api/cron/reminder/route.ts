@@ -35,7 +35,32 @@ export async function GET(req: Request) {
 
         console.log(`Found ${installments.length} installments due.`);
 
+        // CHECK DAILY LIMIT
+        const MAX_DAILY_EMAILS = 5;
+        const sentTodayCount = await prisma.hatirlatici.count({
+            where: {
+                type: 'EMAIL',
+                status: 'SENT',
+                createdAt: {
+                    gte: startOfDay(new Date()),
+                }
+            }
+        });
+
+        console.log(`Emails sent today so far: ${sentTodayCount}`);
+
+        if (sentTodayCount >= MAX_DAILY_EMAILS) {
+            console.log('Daily email limit previously reached.');
+            return NextResponse.json({
+                success: true,
+                message: 'Daily email limit reached',
+                processed: 0,
+                results: []
+            });
+        }
+
         const results = [];
+        let emailsSentThisSession = 0;
 
         for (const installment of installments) {
             const user = installment.kredi.kullanici;
@@ -58,12 +83,22 @@ export async function GET(req: Request) {
                 continue;
             }
 
+            // Check limit again inside loop
+            if (sentTodayCount + emailsSentThisSession >= MAX_DAILY_EMAILS) {
+                console.log('Daily email limit reached during processing session.');
+                break;
+            }
+
             const res = await sendPaymentReminder(user.email, {
                 userName: user.fullName || "Değerli Müşterimiz",
                 bankName: installment.kredi.bankName,
                 amount: `${installment.amount} ₺`,
                 dueDate: installment.dueDate.toLocaleDateString("tr-TR"),
             });
+
+            if (!res.error) {
+                emailsSentThisSession++;
+            }
 
             // Log the reminder in DB
             await prisma.hatirlatici.create({

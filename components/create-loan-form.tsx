@@ -93,7 +93,7 @@ export default function CreateLoanForm() {
             })
         } else {
             toast.info("Dosya yüklendi.", {
-                description: "Otomatik tanıma için banka adı geçen bir dosya kullanın."
+                description: "Demo Modu: Otomatik tanıma için dosya isminde banka adı geçmelidir (örn: 'fibabanka_plan.pdf')."
             })
         }
     }

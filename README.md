@@ -79,6 +79,3 @@ The application is optimized for deployment on **Vercel**.
 3. Add the Environment Variables in Vercel Settings.
 4. Deploy!
 
-## 📄 License
-
-MIT License.
